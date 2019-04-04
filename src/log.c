@@ -1,9 +1,8 @@
-/*
- * log.c
- *
- *  Created on: Dec 18, 2018
- *      Author: Dan Walkes
- */
+/*@Filename	: log.c
+ *@Date		: 3rd April 2019
+ *@Author	: Dan Walked
+ *@Course	: IoT Embedded Firmware [Spring 2019]
+ * */
 
 #include "retargetserial.h"
 #include "log.h"
