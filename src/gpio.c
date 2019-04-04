@@ -44,3 +44,22 @@ void gpioLed1SetOff()
 {
 	GPIO_PinOutClear(LED1_port,LED1_pin);
 }
+
+/* Enable LCD */
+void gpioEnableDisplay()
+{
+	GPIO_PinOutSet(gpioPortD, 15);
+}
+
+void gpioSetDisplayExtcomin(bool high)
+{
+	if (high == false)
+	{
+		GPIO_PinOutClear(gpioPortD, 13);
+	}
+
+	if (high == true)
+	{
+		GPIO_PinOutSet(gpioPortD, 13);
+	}
+}

@@ -58,6 +58,9 @@
 #define LOG_DEBUG_CODE(code)
 #endif
 
+uint32_t timeCount;
+
+#define LOG_UPDATE 0x87
 
 #if INCLUDE_LOGGING
 #define LOG_DO(message,level, ...) \

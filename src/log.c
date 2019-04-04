@@ -6,6 +6,7 @@
 
 #include "retargetserial.h"
 #include "log.h"
+#include "native_gecko.h"
 #include <stdbool.h>
 
 #if INCLUDE_LOGGING
@@ -16,7 +17,8 @@
 uint32_t loggerGetTimestamp(void)
 {
 	//return timerGetRunTimeMilliseconds();
-	return 0;
+	uint32_t data = timeCount;
+	return data;
 }
 
 /**
@@ -25,6 +27,7 @@ uint32_t loggerGetTimestamp(void)
  */
 void logInit(void)
 {
+	gecko_cmd_hardware_set_soft_timer((32768/100), LOG_UPDATE, 0);
 	RETARGET_SerialInit();
 	/**
 	 * See https://siliconlabs.github.io/Gecko_SDK_Doc/efm32g/html/group__RetargetIo.html#ga9e36c68713259dd181ef349430ba0096
