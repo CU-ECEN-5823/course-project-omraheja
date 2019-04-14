@@ -18,6 +18,8 @@
 #include "ble_mesh_device_type.h"
 #include <gpiointerrupt.h>
 #include "mesh_lib.h"
+#include "em_cmu.h"
+#include "em_core.h"
 
 /*************************************************************
  * FUNCTION PROTOTYPES										 *
@@ -77,7 +79,11 @@ static uint16 _primary_elem_index = 0xffff;
 #define MESH_GENERIC_ON_OFF_STATE_OFF			0x00	/** Generic on/off state value off */
 #define MESH_GENERIC_ON_OFF_STATE_ON			0x01	/** Generic on/off state value on */
 
+#define IR_SENSOR_PORT			gpioPortD
+#define IR_SENSOR_PIN			(11)			//Pin P9
+/* gpioPortD, Pin 10 -> Pin P7 */
 
+int IR_FLAG;
 
 /********************************************************************************************
  * @function_name : INITIATE FACTORY RESET					 								*
@@ -177,7 +183,6 @@ void enable_push_button_interrupts()
 
 	/* register the callback function that is invoked when interrupt occurs */
 	GPIOINT_CallbackRegister(__PB0_BUTTON_PIN, gpioint);
-
 }
 
 
@@ -431,6 +436,41 @@ static void onoff_request(uint16_t model_id,
 }
 
 
+
+void GPIO_EVEN_IRQHandler(void)
+{
+	LOG_INFO("IN EVEN IRQ HANDLER\n\r");
+
+	uint32_t flag;
+	flag = GPIO_IntGet();
+	GPIO_IntClear(flag);
+
+	if(flag & 0x800)
+	{
+		LOG_INFO("INTERRUPT DUE TO IR SENSOR\n\r");
+	}
+
+}
+
+void GPIO_ODD_IRQHandler(void)
+{
+	LOG_INFO("IN ODD IRQ HANDLER\n\r");
+
+	uint32_t flag;
+	flag = GPIO_IntGet();
+	GPIO_IntClear(flag);
+
+	if(flag & 0x800)
+	{
+		bool data = GPIO_PinInGet(IR_SENSOR_PORT,IR_SENSOR_PIN);
+		LOG_INFO("FLAG VALUE = %d\n\r",data);
+		LOG_INFO("INTERRUPT DUE TO IR SENSOR\n\r");
+	}
+
+
+}
+
+
 /********************************************************************************************
  * @function_name : MAIN FUNCTION					 										*
  ********************************************************************************************/
@@ -448,6 +488,18 @@ int main(void)
 
   /* Initialize Display */
   displayInit();
+
+  /* This part of the code will be moved to gpio.c. */
+  /******************************************************/
+  CMU_ClockEnable(cmuClock_LFA,true);
+  CMU_ClockEnable(cmuClock_GPIO,true);
+  GPIO_PinModeSet(IR_SENSOR_PORT,IR_SENSOR_PIN,gpioModeInputPull,true);
+  GPIO->IFC = 0x00000000;	//Clear all Gpio Interrupt flags
+  GPIO_IntConfig(IR_SENSOR_PORT,IR_SENSOR_PIN,0,1,1);
+  NVIC_EnableIRQ(GPIO_ODD_IRQn);
+  NVIC_EnableIRQ(GPIO_EVEN_IRQn);
+  /*****************************************************/
+
 
   /* Infinite loop */
   while (1) {
@@ -477,6 +529,7 @@ void gecko_event_handler_pub(uint32_t evt_id, struct gecko_cmd_packet *evt)
 	{
 		return;
 	}
+
 
 	switch(evt_id)
 	{
