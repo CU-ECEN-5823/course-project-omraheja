@@ -2,6 +2,9 @@
 
 This project contains skeleton code used for coursework in University of Colorado [ECEN 5823 IoT Embedded Firmware](https://sites.google.com/colorado.edu/ecen5823/home).
 
+Project Report (Group) : https://docs.google.com/document/d/1R1eXeu73rT5qerNNjkkjfaU8d4dDdhMGX4tJ_LX3e94/edit 
+Project Report (Om Raheja) : https://docs.google.com/document/d/1AnGrCNfncc75SWrykYFmEkD-7aW01dyo0zd0w6rhZ1Q/edit
+
 Below is an overview of the sequence used to generate this repository:
 * The project was generated starting with the new project Wizard built into [Simplicity Studio 4](https://www.silabs.com/products/development-tools/software/simplicity-studio).  
 * The AppBuilder project was used with application type "Bluetooth Mesh SDK" with version 2.11.2.0 and Bluetooth SDK 2.9.3.0, application stack "Bluetooth Mesh SDK 1.4.1.0"
