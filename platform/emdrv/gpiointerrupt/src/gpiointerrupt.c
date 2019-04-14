@@ -134,18 +134,18 @@ static void GPIOINT_IRQDispatcher(uint32_t iflags)
  *   call the dispatcher passing the flags which triggered the interrupt.
  *
  ******************************************************************************/
-void GPIO_EVEN_IRQHandler(void)
-{
-  uint32_t iflags;
-
-  /* Get all even interrupts. */
-  iflags = GPIO_IntGetEnabled() & 0x00005555;
-
-  /* Clean only even interrupts. */
-  GPIO_IntClear(iflags);
-
-  GPIOINT_IRQDispatcher(iflags);
-}
+//void GPIO_EVEN_IRQHandler(void)
+//{
+//  uint32_t iflags;
+//
+//  /* Get all even interrupts. */
+//  iflags = GPIO_IntGetEnabled() & 0x00005555;
+//
+//  /* Clean only even interrupts. */
+//  GPIO_IntClear(iflags);
+//
+//  GPIOINT_IRQDispatcher(iflags);
+//}
 
 /***************************************************************************//**
  * @brief
@@ -153,18 +153,18 @@ void GPIO_EVEN_IRQHandler(void)
  *   call the dispatcher passing the flags which triggered the interrupt.
  *
  ******************************************************************************/
-void GPIO_ODD_IRQHandler(void)
-{
-  uint32_t iflags;
-
-  /* Get all odd interrupts. */
-  iflags = GPIO_IntGetEnabled() & 0x0000AAAA;
-
-  /* Clean only odd interrupts. */
-  GPIO_IntClear(iflags);
-
-  GPIOINT_IRQDispatcher(iflags);
-}
+//void GPIO_ODD_IRQHandler(void)
+//{
+//  uint32_t iflags;
+//
+//  /* Get all odd interrupts. */
+//  iflags = GPIO_IntGetEnabled() & 0x0000AAAA;
+//
+//  /* Clean only odd interrupts. */
+//  GPIO_IntClear(iflags);
+//
+//  GPIOINT_IRQDispatcher(iflags);
+//}
 
 /** @endcond */
 

@@ -7,7 +7,8 @@
 #include "gpio.h"
 #include "em_gpio.h"
 #include <string.h>
-
+#include "display.h"
+#include "log.h"
 
 #define	LED0_port gpioPortF
 #define LED0_pin	4
@@ -26,6 +27,7 @@ void gpioInit()
 	/* Set Push button pins */
 	GPIO_PinModeSet(__PB0_BUTTON_PORT, __PB0_BUTTON_PIN, gpioModeInputPull, true);
 	GPIO_PinModeSet(__PB1_BUTTON_PORT, __PB1_BUTTON_PIN, gpioModeInputPull, true);
+
 }
 
 void gpioLed0SetOn()
