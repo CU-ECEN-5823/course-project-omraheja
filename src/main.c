@@ -32,16 +32,32 @@ void set_device_name(bd_addr *pAddr);
 void enable_push_button_interrupts();
 void handle_button_press(int button);
 bool mesh_bgapi_listener(struct gecko_cmd_packet *evt);
-static errorcode_t onoff_update(uint16_t element_index);
-static errorcode_t onoff_update_and_publish(uint16_t element_index);
+//static errorcode_t onoff_update(uint16_t element_index);
+//static errorcode_t onoff_update_and_publish(uint16_t element_index);
 void gecko_event_handler(uint32_t evt_id, struct gecko_cmd_packet *evt);
 void gecko_event_handler_pub(uint32_t evt_id, struct gecko_cmd_packet *evt);
 void gecko_event_handler_sub(uint32_t evt_id, struct gecko_cmd_packet *evt);
 extern void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt);
-static void onoff_change(uint16_t model_id, uint16_t element_index, const struct mesh_generic_state *current, const struct mesh_generic_state *target,\
-		                 uint32_t remaining_ms);
-static void onoff_request(uint16_t model_id, uint16_t element_index, uint16_t client_addr, uint16_t server_addr, uint16_t appkey_index,\
-						  const struct mesh_generic_request *request, uint32_t transition_ms, uint16_t delay_ms, uint8_t request_flags);
+//static void onoff_change(uint16_t model_id, uint16_t element_index, const struct mesh_generic_state *current, const struct mesh_generic_state *target,\
+//		                 uint32_t remaining_ms);
+//static void onoff_request(uint16_t model_id, uint16_t element_index, uint16_t client_addr, uint16_t server_addr, uint16_t appkey_index,\
+//						  const struct mesh_generic_request *request, uint32_t transition_ms, uint16_t delay_ms, uint8_t request_flags);
+
+static void pb0_pressrelease_request(uint16_t model_id,
+                          uint16_t element_index,
+                          uint16_t client_addr,
+                          uint16_t server_addr,
+                          uint16_t appkey_index,
+                          const struct mesh_generic_request *request,
+                          uint32_t transition_ms,
+                          uint16_t delay_ms,
+                          uint8_t request_flags);
+
+static void pb0_pressrelease_change(uint16_t model_id,
+                         uint16_t element_index,
+                         const struct mesh_generic_state *current,
+                         const struct mesh_generic_state *target,
+                         uint32_t remaining_ms);
 
 
 /*************************************************************
@@ -105,6 +121,38 @@ void initiate_factory_reset(void)
   LOG_INFO("[INFO] :\tFactory Reset\n\r");
   displayPrintf(DISPLAY_ROW_ACTION,"Factory Reset!");
 
+}
+
+
+/***************************************************************************//**
+ * Initialize LPN functionality with configuration and friendship establishment.
+ * Copied from silicon labs switch example code
+ ******************************************************************************/
+void lpn_init(void)
+{
+	uint16 res;
+	// Initialize LPN functionality.
+	res = gecko_cmd_mesh_lpn_init()->result;
+	if (res) {
+		LOG_INFO("LPN init failed (0x%x)", res);
+		return;
+	}
+
+	// Configure the lpn with following parameters:
+	// - Minimum friend queue length = 2
+	// - Poll timeout = 5 seconds
+	res = gecko_cmd_mesh_lpn_configure(2, 5 * 1000)->result;
+	if (res) {
+		LOG_INFO("LPN conf failed (0x%x)", res);
+		return;
+	}
+
+	LOG_INFO("trying to find friend...");
+	res = gecko_cmd_mesh_lpn_establish_friendship(0)->result;
+
+	if (res != 0) {
+		LOG_INFO("ret.code %x", res);
+	}
 }
 
 /************************************************************************************************
@@ -245,17 +293,17 @@ void send_onoff_request(int retrans)
   struct mesh_generic_request req;
   const uint32 transtime = 0; /* using zero transition time by default */
 
-  req.kind = mesh_generic_request_on_off;
+  req.kind = mesh_generic_request_pb0_press_release;
   if(switch_pos == PB0_PRESSED)
   {
-	  req.on_off = PB0_PRESSED;
+	  req.pb0_press_release = MESH_GENERIC_PB0_PRESS_RELEASE_STATE_PRESS;
   }
   else if(switch_pos == PB0_RELEASED)
   {
-	  req.on_off = PB0_RELEASED;
+	  req.pb0_press_release = MESH_GENERIC_PB0_PRESS_RELEASE_STATE_RELEASE;
   }
 
-  LOG_INFO("[DEBUG]:\treq.on_off-> %d",req.on_off);
+  LOG_INFO("[DEBUG]:\treq.pb0_press_release-> %d",req.pb0_press_release);
 
   /* increment transaction ID for each request, unless it's a retransmission */
   if (retrans == 0)
@@ -271,14 +319,14 @@ void send_onoff_request(int retrans)
 
   LOG_INFO("[INFO] :\tPublishing.......\n\r");
   resp = mesh_lib_generic_client_publish(
-    MESH_GENERIC_ON_OFF_CLIENT_MODEL_ID,
-    _elem_index,
-    trid,
-    &req,
-    transtime,	// transition time in ms
-    delay,
-    0			// flags
-    );
+		  MESH_GENERIC_PB0_PRESS_RELEASE_CLIENT_MODEL_ID,
+		  _elem_index,
+		  trid,
+		  &req,
+		  transtime,	// transition time in ms
+		  delay,
+		  0			// flags
+  );
 
   if (resp) {
     LOG_INFO("[ERROR]:\tgecko_cmd_mesh_generic_client_publish failed,code %x\r\n", resp);
@@ -306,22 +354,22 @@ void send_onoff_request(int retrans)
  * @return Status of the update and publish operation.
  *         Returns bg_err_success (0) if succeed, non-zero otherwise.
  ******************************************************************************/
-static errorcode_t onoff_update_and_publish(uint16_t element_index)
-{
-  errorcode_t e;
-
-  e = onoff_update(element_index);
-
-  if (e == bg_err_success) {
-    e = mesh_lib_generic_server_publish(MESH_GENERIC_ON_OFF_SERVER_MODEL_ID,
-                                        element_index,
-                                        mesh_generic_state_on_off);
-    LOG_INFO("[INFO] :\tonoff_update return status = %d\n\r",e);
-
-  }
-
-  return e;
-}
+//static errorcode_t onoff_update_and_publish(uint16_t element_index)
+//{
+//  errorcode_t e;
+//
+//  e = onoff_update(element_index);
+//
+//  if (e == bg_err_success) {
+//    e = mesh_lib_generic_server_publish(MESH_GENERIC_ON_OFF_SERVER_MODEL_ID,
+//                                        element_index,
+//                                        mesh_generic_state_on_off);
+//    LOG_INFO("[INFO] :\tonoff_update return status = %d\n\r",e);
+//
+//  }
+//
+//  return e;
+//}
 
 
 
@@ -334,24 +382,24 @@ static errorcode_t onoff_update_and_publish(uint16_t element_index)
  * @return Status of the update operation.
  *         Returns bg_err_success (0) if succeed, non-zero otherwise.
  ******************************************************************************/
-static errorcode_t onoff_update(uint16_t element_index)
-{
- struct mesh_generic_state current, target;
-
-  current.kind = mesh_generic_state_on_off;
-  current.on_off.on = PB0_PRESSED;
-  //current.on_off.on = 0;
-
-  target.kind = mesh_generic_state_on_off;
-  target.on_off.on = PB0_RELEASED;
-  //target.on_off.on = 1;
-
-  return mesh_lib_generic_server_update(MESH_GENERIC_ON_OFF_SERVER_MODEL_ID,
-                                        element_index,
-                                        &current,
-                                        &target,
-                                        0);
-}
+//static errorcode_t onoff_update(uint16_t element_index)
+//{
+// struct mesh_generic_state current, target;
+//
+//  current.kind = mesh_generic_state_on_off;
+//  current.on_off.on = PB0_PRESSED;
+//  //current.on_off.on = 0;
+//
+//  target.kind = mesh_generic_state_on_off;
+//  target.on_off.on = PB0_RELEASED;
+//  //target.on_off.on = 1;
+//
+//  return mesh_lib_generic_server_update(MESH_GENERIC_ON_OFF_SERVER_MODEL_ID,
+//                                        element_index,
+//                                        &current,
+//                                        &target,
+//                                        0);
+//}
 
 
 
@@ -363,10 +411,10 @@ static errorcode_t onoff_update(uint16_t element_index)
 static void init_models(void)
 {
 	LOG_INFO("[DEBUG]:\tINITIALIZE MODELS\n\r");
-	mesh_lib_generic_server_register_handler(MESH_GENERIC_ON_OFF_SERVER_MODEL_ID,
+	mesh_lib_generic_server_register_handler(MESH_GENERIC_PB0_PRESS_RELEASE_SERVER_MODEL_ID,
                                            0,
-                                           onoff_request,
-                                           onoff_change);
+										   pb0_pressrelease_request,
+										   pb0_pressrelease_change);
 }
 
 
@@ -381,7 +429,7 @@ static void init_models(void)
  * @param[in] remaining_ms   Time (in milliseconds) remaining before transition	*
  *                           from current state to target state is complete.	*
  ********************************************************************************/
-static void onoff_change(uint16_t model_id,
+static void pb0_pressrelease_change(uint16_t model_id,
                          uint16_t element_index,
                          const struct mesh_generic_state *current,
                          const struct mesh_generic_state *target,
@@ -409,7 +457,7 @@ static void onoff_change(uint16_t model_id,
  *                           - Bit 1: Response required. If nonzero client				*
  *                                    expects a response from the server.				*
  ****************************************************************************************/
-static void onoff_request(uint16_t model_id,
+static void pb0_pressrelease_request(uint16_t model_id,
                           uint16_t element_index,
                           uint16_t client_addr,
                           uint16_t server_addr,
@@ -419,56 +467,56 @@ static void onoff_request(uint16_t model_id,
                           uint16_t delay_ms,
                           uint8_t request_flags)
 {
-	LOG_INFO("[DEBUG]:\t Request->on_off = %d",request->on_off);
-	if((request->on_off) == 0)
+	LOG_INFO("[DEBUG]:\t Request->on_off = %d",request->pb0_press_release );
+	if((request->pb0_press_release ) == 0)
 	{
 		LOG_INFO("[INFO] :\tBUTTON PRESSED\n\r");
 		displayPrintf(DISPLAY_ROW_ACTION,"Button Pressed");
 	}
 
-	if((request->on_off) == 1)
+	if((request->pb0_press_release ) == 1)
 	{
 		LOG_INFO("[INFO] :\tBUTTON RELEASED\n\r");
 		displayPrintf(DISPLAY_ROW_ACTION,"Button Released");
 	}
 
-	onoff_update_and_publish(element_index);
+//	onoff_update_and_publish(element_index);
 }
 
 
 
-void GPIO_EVEN_IRQHandler(void)
-{
-	LOG_INFO("IN EVEN IRQ HANDLER\n\r");
-
-	uint32_t flag;
-	flag = GPIO_IntGet();
-	GPIO_IntClear(flag);
-
-	if(flag & 0x800)
-	{
-		LOG_INFO("INTERRUPT DUE TO IR SENSOR\n\r");
-	}
-
-}
-
-void GPIO_ODD_IRQHandler(void)
-{
-	LOG_INFO("IN ODD IRQ HANDLER\n\r");
-
-	uint32_t flag;
-	flag = GPIO_IntGet();
-	GPIO_IntClear(flag);
-
-	if(flag & 0x800)
-	{
-		bool data = GPIO_PinInGet(IR_SENSOR_PORT,IR_SENSOR_PIN);
-		LOG_INFO("FLAG VALUE = %d\n\r",data);
-		LOG_INFO("INTERRUPT DUE TO IR SENSOR\n\r");
-	}
-
-
-}
+//void GPIO_EVEN_IRQHandler(void)
+//{
+//	LOG_INFO("IN EVEN IRQ HANDLER\n\r");
+//
+//	uint32_t flag;
+//	flag = GPIO_IntGet();
+//	GPIO_IntClear(flag);
+//
+//	if(flag & 0x800)
+//	{
+//		LOG_INFO("INTERRUPT DUE TO IR SENSOR\n\r");
+//	}
+//
+//}
+//
+//void GPIO_ODD_IRQHandler(void)
+//{
+//	LOG_INFO("IN ODD IRQ HANDLER\n\r");
+//
+//	uint32_t flag;
+//	flag = GPIO_IntGet();
+//	GPIO_IntClear(flag);
+//
+//	if(flag & 0x800)
+//	{
+//		bool data = GPIO_PinInGet(IR_SENSOR_PORT,IR_SENSOR_PIN);
+//		LOG_INFO("FLAG VALUE = %d\n\r",data);
+//		LOG_INFO("INTERRUPT DUE TO IR SENSOR\n\r");
+//	}
+//
+//
+//}
 
 
 /********************************************************************************************
@@ -489,16 +537,16 @@ int main(void)
   /* Initialize Display */
   displayInit();
 
-  /* This part of the code will be moved to gpio.c. */
-  /******************************************************/
-  CMU_ClockEnable(cmuClock_LFA,true);
-  CMU_ClockEnable(cmuClock_GPIO,true);
-  GPIO_PinModeSet(IR_SENSOR_PORT,IR_SENSOR_PIN,gpioModeInputPull,true);
-  GPIO->IFC = 0x00000000;	//Clear all Gpio Interrupt flags
-  GPIO_IntConfig(IR_SENSOR_PORT,IR_SENSOR_PIN,0,1,1);
-  NVIC_EnableIRQ(GPIO_ODD_IRQn);
-  NVIC_EnableIRQ(GPIO_EVEN_IRQn);
-  /*****************************************************/
+//  /* This part of the code will be moved to gpio.c. */
+//  /******************************************************/
+//  CMU_ClockEnable(cmuClock_LFA,true);
+//  CMU_ClockEnable(cmuClock_GPIO,true);
+//  GPIO_PinModeSet(IR_SENSOR_PORT,IR_SENSOR_PIN,gpioModeInputPull,true);
+//  GPIO->IFC = 0x00000000;	//Clear all Gpio Interrupt flags
+//  GPIO_IntConfig(IR_SENSOR_PORT,IR_SENSOR_PIN,0,1,1);
+//  NVIC_EnableIRQ(GPIO_ODD_IRQn);
+//  NVIC_EnableIRQ(GPIO_EVEN_IRQn);
+//  /*****************************************************/
 
 
   /* Infinite loop */
@@ -567,6 +615,7 @@ void gecko_event_handler_pub(uint32_t evt_id, struct gecko_cmd_packet *evt)
 
 	          /* Initialize generic client models */
 	          gecko_cmd_mesh_generic_client_init();
+	          lpn_init();
 	          LOG_INFO("[INFO] :\tClient Initialization\n\r");
 	          displayPrintf(DISPLAY_ROW_CONNECTION,"Node Initialized!");
 
@@ -580,6 +629,7 @@ void gecko_event_handler_pub(uint32_t evt_id, struct gecko_cmd_packet *evt)
 	      }
 	      else
 	      {
+	    	  displayPrintf(DISPLAY_ROW_ACTION, "UNPROVISIONED");
 	    	  gecko_cmd_mesh_node_start_unprov_beaconing(0x3);
 	      }
 	      break;
@@ -595,6 +645,19 @@ void gecko_event_handler_pub(uint32_t evt_id, struct gecko_cmd_packet *evt)
 		LOG_INFO("[DEBUG]:\tGECKO_EVT_MESH_NODE_PROVISIONED_ID:\n\r")
 		LOG_INFO("[INFO] :\tProvisioned!\n\r");
 		displayPrintf(DISPLAY_ROW_ACTION,"Provisioned");
+		/* Initialize generic client models */
+		gecko_cmd_mesh_generic_client_init();
+		lpn_init();
+		LOG_INFO("[INFO] :\tClient Initialization\n\r");
+		displayPrintf(DISPLAY_ROW_CONNECTION,"Node Initialized!");
+
+		/* Enable Push Button Interrupts  */
+		enable_push_button_interrupts();
+
+		_elem_index = 0;
+
+		/* Initialize mesh lib, upto 8 models */
+		mesh_lib_init(malloc,free,8);
 		break;
 
 	case gecko_evt_mesh_node_provisioning_failed_id:
@@ -620,7 +683,40 @@ void gecko_event_handler_pub(uint32_t evt_id, struct gecko_cmd_packet *evt)
 		case LOG_UPDATE:
 			timeCount = timeCount + 10;
 			break;
+
+		// find friend case
+		case TIMER_ID_FRIEND_FIND:
+			{
+				LOG_INFO("trying to find friend...");
+				uint16_t result;
+				result = gecko_cmd_mesh_lpn_establish_friendship(0)->result;
+				if (result != 0) {
+					LOG_INFO("ret.code %x", result);
+				}
+			}
+			break;
 		}
+		break;
+
+	case gecko_evt_mesh_lpn_friendship_established_id:
+		LOG_INFO("friendship established");
+		displayPrintf(DISPLAY_ROW_LPN, "LPN");
+		break;
+
+	case gecko_evt_mesh_lpn_friendship_failed_id:
+		LOG_INFO("friendship failed");
+		displayPrintf(DISPLAY_ROW_LPN, "no friend");
+		// try again in 2 seconds
+		gecko_cmd_hardware_set_soft_timer(2 * 32768, TIMER_ID_FRIEND_FIND, 1);
+		break;
+
+	case gecko_evt_mesh_lpn_friendship_terminated_id:
+		LOG_INFO("friendship terminated");
+		displayPrintf(DISPLAY_ROW_LPN, "friend lost");
+//		if (num_connections == 0) {
+//			// try again in 2 seconds
+//			gecko_cmd_hardware_set_soft_timer(2 * 32768, TIMER_ID_FRIEND_FIND, 1);
+//		}
 		break;
 
 
@@ -698,13 +794,21 @@ void gecko_event_handler_sub(uint32_t evt_id, struct gecko_cmd_packet *evt)
 
 	          /* Initialize generic server models */
 	          gecko_cmd_mesh_generic_server_init();
+	          //Initialize Friend functionality
+	          LOG_INFO("Friend mode initialization");
+	          uint16 res;
+	          res = gecko_cmd_mesh_friend_init()->result;
+	          if (res) {
+	        	  LOG_INFO("Friend init failed 0x%x", res);
+	          }
+
 	          LOG_INFO("[INFO SUB] :\tServer Initialization\n\r");
 	          displayPrintf(DISPLAY_ROW_CONNECTION,"Node Initialized!");
 
 	          /* Initialize mesh lib, upto 8 models */
 	          mesh_lib_init(malloc,free,9);
 	          init_models();
-	          onoff_update_and_publish(_primary_elem_index);
+//	          onoff_update_and_publish(_primary_elem_index);
 	      }
 	      else
 	      {
@@ -723,6 +827,25 @@ void gecko_event_handler_sub(uint32_t evt_id, struct gecko_cmd_packet *evt)
 		LOG_INFO("[DEBUG]:\tGECKO_EVT_MESH_NODE_PROVISIONED_ID:\n\r")
 		LOG_INFO("[INFO] :\tProvisioned!\n\r");
 		displayPrintf(DISPLAY_ROW_ACTION,"Sub Provisioned");
+		_primary_elem_index = 0;
+
+		/* Initialize generic server models */
+		gecko_cmd_mesh_generic_server_init();
+		//Initialize Friend functionality
+		LOG_INFO("Friend mode initialization");
+		uint16 res;
+		res = gecko_cmd_mesh_friend_init()->result;
+		if (res) {
+			LOG_INFO("Friend init failed 0x%x", res);
+		}
+
+		LOG_INFO("[INFO SUB] :\tServer Initialization\n\r");
+		displayPrintf(DISPLAY_ROW_CONNECTION,"Node Initialized!");
+
+		/* Initialize mesh lib, upto 8 models */
+		mesh_lib_init(malloc,free,9);
+		init_models();
+		//	          onoff_update_and_publish(_primary_elem_index);
 		break;
 
 	case gecko_evt_mesh_node_provisioning_failed_id:
@@ -749,6 +872,17 @@ void gecko_event_handler_sub(uint32_t evt_id, struct gecko_cmd_packet *evt)
 			timeCount = timeCount + 10;
 			break;
 
+		// find friend case
+		case TIMER_ID_FRIEND_FIND:
+			{
+				LOG_INFO("trying to find friend...");
+				uint16_t result;
+				result = gecko_cmd_mesh_lpn_establish_friendship(0)->result;
+				if (result != 0) {
+					LOG_INFO("ret.code %x", result);
+				}
+			}
+			break;
 		}
 		break;
 
