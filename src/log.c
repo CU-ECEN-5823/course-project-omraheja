@@ -1,6 +1,6 @@
 /*@Filename	: log.c
  *@Date		: 3rd April 2019
- *@Author	: Dan Walked
+ *@Author	: Dan Walkes
  *@Course	: IoT Embedded Firmware [Spring 2019]
  * */
 

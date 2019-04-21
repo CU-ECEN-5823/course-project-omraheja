@@ -34,8 +34,9 @@
 #define GPIO_SET_DISPLAY_EXT_COMIN_IMPLEMENTED 1
 #define SCHEDULER_SUPPORTS_DISPLAY_UPDATE_EVENT 1
 #define TIMER_SUPPORTS_1HZ_TIMER_EVENT 1
-#define LCD_UPDATE				  15
+
 #include "glib.h"
+#include "main.h"
 
 /**
  * Display row definitions, used for writing specific content based on assignment requirements.
@@ -45,11 +46,11 @@ enum display_row {
 	DISPLAY_ROW_NAME,
 	DISPLAY_ROW_BTADDR,
 	DISPLAY_ROW_BTADDR2,
-	DISPLAY_ROW_CLIENTADDR,
 	DISPLAY_ROW_CONNECTION,
 	DISPLAY_ROW_LPN,
 	DISPLAY_ROW_ACTION,
-	DISPLAY_ROW_TEMPVALUE,
+	DISPLAY_ROW_PEOPLE,
+	DISPLAY_ROW_SENSOR,
 	DISPLAY_ROW_MAX,
 };
 
