@@ -326,7 +326,7 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
 			// stop buzzer
 			GPIO_PinOutClear(BUZZ_PORT,BUZZ_PIN);
 			// stop LED 1
-			gpioLed1SetOff()
+			gpioLed1SetOff();
 			// remove display message
 			displayPrintf(DISPLAY_ROW_SENSOR, " ");
 		}
@@ -336,7 +336,7 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
 			// start buzzer
 			GPIO_PinOutSet(BUZZ_PORT,BUZZ_PIN);
 			// start LED 1
-			gpioLed1SetOn()
+			gpioLed1SetOn();
 			// display message
 			displayPrintf(DISPLAY_ROW_SENSOR, "LOUD NOISE");
 		}
