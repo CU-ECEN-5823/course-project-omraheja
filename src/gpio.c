@@ -57,8 +57,6 @@ void gpioIntEnable()
 /* even gpio pin interrupts */
 void GPIO_EVEN_IRQHandler(void)
 {
-	LOG_INFO("IN EVEN IRQ HANDLER\n\r");
-
 	uint32_t flag;
 	flag = GPIO_IntGet();
 	GPIO_IntClear(flag);
@@ -71,8 +69,6 @@ void GPIO_EVEN_IRQHandler(void)
 /* odd gpio pin interrupts */
 void GPIO_ODD_IRQHandler(void)
 {
-	LOG_INFO("IN ODD IRQ HANDLER\n\r");
-
 	uint32_t flag;
 	flag = GPIO_IntGet();
 	GPIO_IntClear(flag);
