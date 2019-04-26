@@ -8,6 +8,7 @@
 #ifndef SRC_LOG_H_
 #define SRC_LOG_H_
 #include "stdio.h"
+#include "main.h"
 #include <inttypes.h>
 
 /**
@@ -59,8 +60,6 @@
 #endif
 
 uint32_t timeCount;
-
-#define LOG_UPDATE 0x87
 
 #if INCLUDE_LOGGING
 #define LOG_DO(message,level, ...) \
