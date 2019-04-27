@@ -116,8 +116,8 @@ static void init_models(void)
                                            on_off_change);
   mesh_lib_generic_server_register_handler(MESH_GENERIC_LEVEL_SERVER_MODEL_ID,
                                            0,
-                                           on_off_request,
-                                           on_off_change);
+                                           level_request,
+                                           level_change);
 }
 
 // Level model request from friend
@@ -416,7 +416,7 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
 			if (resp) {
 				LOG_INFO("gecko_cmd_mesh_generic_server_publish failed, code %x", resp);
 			} else {
-				LOG_INFO("update done");
+				LOG_INFO("publish done");
 			}
 		}
 
@@ -447,7 +447,7 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
 			if (resp) {
 				LOG_INFO("gecko_cmd_mesh_generic_server_publish failed, code %x", resp);
 			} else {
-				LOG_INFO("update done");
+				LOG_INFO("publish done");
 			}
 		}
 		break;
