@@ -99,7 +99,7 @@ void scheduler(void)
 	  //Set current state as the next state if they are not equal
 	  if(current_state != next_state)
 	  {
-		  LOG_INFO("Scheduler state changed from %d to %d", current_state, next_state);
+//		  LOG_INFO("Scheduler state changed from %d to %d", current_state, next_state);
 		  current_state = next_state;
 	  }
 }

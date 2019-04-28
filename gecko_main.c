@@ -159,7 +159,7 @@ static void level_change(uint16_t model_id,
                          const struct mesh_generic_state *target,
                          uint32_t remaining_ms)
 {
-	LOG_INFO("IN LEVEL CHANGED");
+	LOG_INFO("In level change");
 }
 
 // On off request from friend

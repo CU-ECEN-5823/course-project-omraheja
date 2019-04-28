@@ -98,7 +98,7 @@ void getTempVal(void)
 	//Calculate the humidity value
 	tempvalue = (125*i2c_data/65536) - 6;
 
-	if(tempvalue > 50)
+	if(tempvalue > 40)
 		gecko_external_signal(HUMIDITY_FLAG);
 
 	/* Print the value on serial terminal */
@@ -114,7 +114,7 @@ void I2C0_IRQHandler(void)
 	/* Check if i2c transfer is done */
 	if(i2c_transfer_status == i2cTransferDone)
 	{
-		LOG_INFO("I2C TRANSFER DONE");
+//		LOG_INFO("I2C TRANSFER DONE");
 		if(read == 1)
 		{
 //			timer_events.complete_i2c_read = true;
