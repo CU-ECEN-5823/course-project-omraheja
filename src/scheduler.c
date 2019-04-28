@@ -52,7 +52,7 @@ void scheduler(void)
 //					  timer_events.def_event = true;
 //					  CORE_EXIT_CRITICAL();//Clear the event
 
-					  LOG_INFO("STATE 1");
+//					  LOG_INFO("STATE 1");
 
 	//				  SLEEP_SleepBlockBegin(sleepEM2);
 					  I2C_write();							      				//I2C write to transition to the next state
@@ -68,7 +68,7 @@ void scheduler(void)
 				timer_events.def_event = true;
 				CORE_EXIT_CRITICAL();
 
-				LOG_INFO("STATE 2");
+//				LOG_INFO("STATE 2");
 
 				I2C_read();													//I2C read to transition to the next state
 				next_state = TEMP_SENSOR_WAIT_FOR_I2C_READ_COMPLETE;		//set next state
@@ -86,7 +86,7 @@ void scheduler(void)
 				timer_events.def_event = true;
 				CORE_EXIT_CRITICAL();
 
-				LOG_INFO("STATE 3");
+//				LOG_INFO("STATE 3");
 
 //				SLEEP_SleepBlockEnd(sleepEM2);
 

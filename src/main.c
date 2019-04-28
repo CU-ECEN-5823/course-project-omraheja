@@ -38,7 +38,7 @@ int main(void)
   LETIMER_Enable(LETIMER0,true);
 
   // Configuring Sleep function
-  om_config();
+//  om_config();
 
   // Initialize I2C
   i2c_configure();

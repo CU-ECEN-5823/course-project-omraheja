@@ -55,9 +55,10 @@ static uint16 _elem_index = 0x00;
 #define LPN2_ALERT 0x20
 
 // external signal flags
-#define PB0_FLAG 0x01
-#define PB1_FLAG 0x02
-#define NOISE_FLAG 0x04
+#define PB0_FLAG 			0x01
+#define PB1_FLAG 			0x02
+#define NOISE_FLAG 			0x04
+#define HUMIDITY_FLAG 		0x08
 
 // alert macros
 #define PB0_STOP_ALERT          (0x01)        // LEVEL model

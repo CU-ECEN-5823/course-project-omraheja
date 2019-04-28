@@ -44,10 +44,10 @@ struct timer_events timer_events;
 
 ////////////////////////////////
 // External signals for scheduler
-#define UF_FLAG				0x08
-#define COMP1_FLAG			0x10
-#define I2C_WRITE_DONE 		0x20
-#define I2C_READ_DONE 		0x40
+#define UF_FLAG				0x10
+#define COMP1_FLAG			0x20
+#define I2C_WRITE_DONE 		0x40
+#define I2C_READ_DONE 		0x80
 
 /* Declaring the states */
 typedef enum {

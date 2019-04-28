@@ -406,7 +406,6 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
 //			scheduler();
 //		}
 		if (((evt->data.evt_system_external_signal.extsignals) & I2C_WRITE_DONE) != 0) {
-			LOG_INFO("SCHEDULER EXTERNAL EVENT - I2C_WRITE_DONE");
 			timer_events.complete_i2c_write = true;
 			timer_events.def_event = false;
 			scheduler();
@@ -447,7 +446,7 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
 			}
 		}
 
-		// Noise sensor event
+		// Noise Sensor event
 		if (((evt->data.evt_system_external_signal.extsignals) & NOISE_FLAG) != 0) {
 			LOG_INFO("NOISE EXTERNAL SIGNAL");
 
@@ -460,6 +459,37 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
 			// server publish noise alert
 			current.level.level = NOISE_ALERT;
 			target.level.level = NOISE_ALERT;
+
+			// server update
+			resp = mesh_lib_generic_server_update(MESH_GENERIC_LEVEL_SERVER_MODEL_ID, 0, &current, &target, 0);
+			if (resp) {
+				LOG_INFO("gecko_cmd_mesh_generic_server_update failed, code %x", resp);
+			} else {
+				LOG_INFO("update done");
+			}
+
+			// publish update
+			resp = mesh_lib_generic_server_publish(MESH_GENERIC_LEVEL_SERVER_MODEL_ID, 0, current.kind);
+			if (resp) {
+				LOG_INFO("gecko_cmd_mesh_generic_server_publish failed, code %x", resp);
+			} else {
+				LOG_INFO("publish done");
+			}
+		}
+
+		// Humidity Sensor event
+		if (((evt->data.evt_system_external_signal.extsignals) & HUMIDITY_FLAG) != 0) {
+			LOG_INFO("HUMIDITY EXTERNAL SIGNAL");
+
+			displayPrintf(DISPLAY_ROW_SENSOR, "HUMIDITY ALERT");
+
+			// start alerts
+			toggleCount = 0;
+			gecko_cmd_hardware_set_soft_timer(3277, LPN2_ALERT, 0);
+
+			// server publish noise alert
+			current.level.level = HUMIDITY_ALERT;
+			target.level.level = HUMIDITY_ALERT;
 
 			// server update
 			resp = mesh_lib_generic_server_update(MESH_GENERIC_LEVEL_SERVER_MODEL_ID, 0, &current, &target, 0);

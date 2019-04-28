@@ -98,6 +98,9 @@ void getTempVal(void)
 	//Calculate the humidity value
 	tempvalue = (125*i2c_data/65536) - 6;
 
+	if(tempvalue > 50)
+		gecko_external_signal(HUMIDITY_FLAG);
+
 	/* Print the value on serial terminal */
 	LOG_INFO("Humidity -> %d percent", tempvalue);
 }
@@ -107,7 +110,6 @@ void I2C0_IRQHandler(void)
 {
 
 	I2C_TransferReturn_TypeDef i2c_transfer_status = I2C_Transfer(I2C0);
-	LOG_INFO("I2C TRANSFER STATUS = %d", i2c_transfer_status);
 
 	/* Check if i2c transfer is done */
 	if(i2c_transfer_status == i2cTransferDone)
@@ -120,7 +122,6 @@ void I2C0_IRQHandler(void)
 //			gecko_external_signal(timer_events.complete_i2c_read);
 			gecko_external_signal(I2C_READ_DONE);
 			read = 0;
-			LOG_INFO("READ DONE");
 		}
 
 		if(write == 1)
@@ -130,7 +131,6 @@ void I2C0_IRQHandler(void)
 //			gecko_external_signal(timer_events.complete_i2c_write);
 			gecko_external_signal(I2C_WRITE_DONE);
 			write = 0;
-			LOG_INFO("WRITE DONE");
 		}
 	}
 	else if(i2c_transfer_status != i2cTransferInProgress)
