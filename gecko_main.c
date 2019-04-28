@@ -392,6 +392,33 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
 		current.kind = mesh_generic_state_level;
 		target.kind = mesh_generic_state_level;
 
+
+		/////////////////////////////////////////////
+		// Scheduler external events
+		if (((evt->data.evt_system_external_signal.extsignals) & UF_FLAG) != 0) {
+			timer_events.power_on_setup_timer_event = true;
+			timer_events.def_event = false;
+			scheduler();
+		}
+//		if (((evt->data.evt_system_external_signal.extsignals) & COMP1_FLAG) != 0) {
+//			timer_events.timer_expired = true;
+//			timer_events.def_event = false;
+//			scheduler();
+//		}
+		if (((evt->data.evt_system_external_signal.extsignals) & I2C_WRITE_DONE) != 0) {
+			LOG_INFO("SCHEDULER EXTERNAL EVENT - I2C_WRITE_DONE");
+			timer_events.complete_i2c_write = true;
+			timer_events.def_event = false;
+			scheduler();
+		}
+		if (((evt->data.evt_system_external_signal.extsignals) & I2C_READ_DONE) != 0) {
+			timer_events.complete_i2c_read = true;
+			timer_events.def_event = false;
+			scheduler();
+		}
+		// Scheduler external events ends
+		////////////////////////////////////////////
+
 		// PB0 button press
 		if (((evt->data.evt_system_external_signal.extsignals) & PB0_FLAG) != 0) {
 			LOG_INFO("PB0 EXTERNAL SIGNAL");

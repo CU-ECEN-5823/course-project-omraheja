@@ -16,6 +16,12 @@
 #include "em_core.h"
 #include "gpio.h"
 
+/* Scheduler headers */
+#include "emsleep.h"
+#include "delay_us.h"
+#include "letimer.h"
+#include "scheduler.h"
+
 /* Bluetooth stack headers */
 #include "gatt_db.h"
 #include "bg_types.h"
@@ -23,6 +29,7 @@
 #include "native_gecko.h"
 #include <mesh_sizes.h>
 #include <gecko_configuration.h>
+#include "I2C.h"
 #include "mesh_generic_model_capi_types.h"
 #include "mesh_lighting_model_capi_types.h"
 
