@@ -45,6 +45,10 @@ uint32_t msecCount;
 
 static uint16 _elem_index = 0x00;
 
+#if 0
+#define ONE_SECOND_TICK_COUNT			(32768)
+#endif
+
 
 /* Flash IDs for Flash Store and Load functions */
 #define ALERT_FLASH_ID          		(0x01)
@@ -125,6 +129,7 @@ static void level_change(uint16_t model_id,
                          const struct mesh_generic_state *target,
                          uint32_t remaining_ms);
 
+/* Persistent data function declarations */
 uint8_t* flashLoad(uint8_t flashID);
 void flashSave(uint8_t flashID, uint8_t *dataPtr);
 uint8_t* stringToUint(char* str);
