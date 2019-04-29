@@ -1,5 +1,5 @@
 /*@Filename	 : main.c
- *@Author	 : Om Raheja (Code developed with group members)
+ *@Author	 : Om Raheja
  *@Course	 : IoT Embedded Firmware [Spring 2019]
  *@Project   : MINE SAFETY USING BLUETOOTH MESH
  *@brief	 : This function handles gecko events and contains the main portion of the code
@@ -65,28 +65,46 @@ extern const struct bg_gattdb_def bg_gattdb_data;
 uint8_t boot_to_dfu = 0;
 
 const gecko_configuration_t config =
+
 {
-  .bluetooth.max_connections = MAX_CONNECTIONS,
-  .bluetooth.max_advertisers = MAX_ADVERTISERS,
-  .bluetooth.heap = bluetooth_stack_heap,
-  .bluetooth.heap_size = sizeof(bluetooth_stack_heap) - BTMESH_HEAP_SIZE,
-  .bluetooth.sleep_clock_accuracy = 100,
-  .bluetooth.linklayer_priorities = &linklayer_priorities,
-  .gattdb = &bg_gattdb_data,
-  .btmesh_heap_size = BTMESH_HEAP_SIZE,
+		.sleep.flags = SLEEP_FLAGS_DEEP_SLEEP_ENABLE,
+		.bluetooth.max_connections = MAX_CONNECTIONS,
+		.bluetooth.max_advertisers = MAX_ADVERTISERS,
+		.bluetooth.heap = bluetooth_stack_heap,
+		.bluetooth.heap_size = sizeof(bluetooth_stack_heap) - BTMESH_HEAP_SIZE,
+		.bluetooth.sleep_clock_accuracy = 100,
+		.bluetooth.linklayer_priorities = &linklayer_priorities,
+		.gattdb = &bg_gattdb_data,
+		.btmesh_heap_size = BTMESH_HEAP_SIZE,
 #if (HAL_PA_ENABLE)
-  .pa.config_enable = 1, // Set this to be a valid PA config
+		.pa.config_enable = 1, // Set this to be a valid PA config
 #if defined(FEATURE_PA_INPUT_FROM_VBAT)
-  .pa.input = GECKO_RADIO_PA_INPUT_VBAT, // Configure PA input to VBAT
+		.pa.input = GECKO_RADIO_PA_INPUT_VBAT, // Configure PA input to VBAT
 #else
-  .pa.input = GECKO_RADIO_PA_INPUT_DCDC,
+		.pa.input = GECKO_RADIO_PA_INPUT_DCDC,
 #endif // defined(FEATURE_PA_INPUT_FROM_VBAT)
 #endif // (HAL_PA_ENABLE)
-  .max_timers = 16,
+		.max_timers = 16,
 };
 
-// for alerts
+/* Variables required for project */
+/* variable to store flash load data - needs to be global */
+uint8_t flashData[DISPLAY_DATA_LEN];
+uint8_t uintArray[DISPLAY_DATA_LEN];
+char charArray[DISPLAY_DATA_LEN];
+
+/* Lights/LED0 state */
+uint8_t lightState = 0;
+uint8_t* lightStatePtr;
+
+/* Character array to store display message */
+char* displayString;
+uint8_t* displayBuffer;
+
+/* Buzzer and LED1 toggle count */
 uint8_t toggleCount = 0;
+uint8_t* toggleCountPtr;
+
 
 /* Function Prototypes */
 void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt);
@@ -134,22 +152,39 @@ static void level_request(uint16_t model_id,
 	LOG_INFO("IN LEVEL REQUEST");
 
 	if(request->level == FIRE_ALERT) {
-		displayPrintf(DISPLAY_ROW_SENSOR, "FIRE ALERT");
+		displayPrintf(DISPLAY_ROW_SENSOR, "  FIRE ALERT  ");
+		// storing display string in persistent data
+		displayString = "  FIRE ALERT  ";
+		flashSave(DISPLAY_FLASH_ID, stringToUint(displayString));
+
 		toggleCount = 0;
+		flashSave(ALERT_FLASH_ID, &toggleCount);
+
 		gecko_cmd_hardware_set_soft_timer(3277, LPN2_ALERT, 0);
 	}
 	if(request->level == GAS_ALERT) {
-		displayPrintf(DISPLAY_ROW_SENSOR, "GAS ALERT");
+		displayPrintf(DISPLAY_ROW_SENSOR, "   GAS ALERT   ");
+		displayString = "   GAS ALERT   ";
+		flashSave(DISPLAY_FLASH_ID, stringToUint(displayString));
+
 		toggleCount = 0;
+		flashSave(ALERT_FLASH_ID, &toggleCount);
+
 		gecko_cmd_hardware_set_soft_timer(3277, LPN2_ALERT, 0);
 	}
 	if(request->level == VIBRATION_ALERT) {
-		displayPrintf(DISPLAY_ROW_SENSOR, "EARTHQUAKE");
+		displayPrintf(DISPLAY_ROW_SENSOR, "  EARTHQUAKE  ");
+		displayString = "  EARTHQUAKE  ";
+		flashSave(DISPLAY_FLASH_ID, stringToUint(displayString));
+
 		toggleCount = 0;
+		flashSave(ALERT_FLASH_ID, &toggleCount);
+
 		gecko_cmd_hardware_set_soft_timer(3277, LPN2_ALERT, 0);
 	}
 	if(request->level == PB0_STOP_ALERT) {
 		toggleCount = 101;
+		flashSave(ALERT_FLASH_ID, &toggleCount);
 	}
 }
 
@@ -177,10 +212,14 @@ static void on_off_request(uint16_t model_id,
 
 	if(request->on_off == LIGHT_CONTROL_ON) {
 		gpioLed0SetOn();
+		lightState = 1;
+		flashSave(LIGHTS_FLASH_ID, &lightState);
 	}
 
 	if(request->on_off == LIGHT_CONTROL_OFF) {
 		gpioLed0SetOff();
+		lightState = 0;
+		flashSave(LIGHTS_FLASH_ID, &lightState);
 	}
 }
 
@@ -277,7 +316,7 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
 			/* perform a factory reset by erasing PS storage. This removes all the keys and other settings
 			that have been configured for this node */
 			gecko_cmd_flash_ps_erase_all();
-			// reboot after a small delay
+			// reboot after a small delay of 2 sec
 			gecko_cmd_hardware_set_soft_timer(2 * 32768, TIMER_ID_FACTORY_RESET, 1);
 		} else {
 			struct gecko_msg_system_get_bt_address_rsp_t *pAddr = gecko_cmd_system_get_bt_address();
@@ -286,6 +325,18 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
 			// Initialize Mesh stack in Node operation mode, wait for initialized event
 			gecko_cmd_mesh_node_init();
 			LOG_INFO("BOOT DONE");
+
+			// loading persistent data
+			toggleCountPtr = flashLoad(ALERT_FLASH_ID);
+			toggleCount = *toggleCountPtr;
+			LOG_INFO("TOGGLE COUNT = %d", toggleCount);
+
+			displayBuffer = flashLoad(DISPLAY_FLASH_ID);
+			displayString = uintToString(displayBuffer);
+			LOG_INFO("DISPLAY STRING: %15s", displayString);
+
+			lightStatePtr = flashLoad(LIGHTS_FLASH_ID);
+			lightState = *lightStatePtr;
 		}
       break;
 
@@ -295,6 +346,17 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
 		if (pData->provisioned) {
 			LOG_INFO("node is provisioned. address:%x, ivi:%ld", pData->address, pData->ivi);
 
+			/* execution of persistent data */
+			// toggling alerts
+			if(toggleCount != 0)
+				gecko_cmd_hardware_set_soft_timer(3277, LPN2_ALERT, 0);
+
+			// display alert
+			displayPrintf(DISPLAY_ROW_SENSOR, "%15s", displayString);
+
+			// lights on/off
+			lightState ? gpioLed0SetOn() : gpioLed0SetOff();
+
 			mesh_lib_init(malloc,free,9);
 			init_models();
 			gecko_cmd_mesh_generic_server_init();
@@ -303,7 +365,6 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
 			displayPrintf(DISPLAY_ROW_ACTION, "PROVISIONED");
 		}
 		else {
-
 			LOG_INFO("node is unprovisioned");
 			LOG_INFO("starting unprovisioned beaconing...");
 
@@ -363,20 +424,27 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
 			case LPN2_ALERT:
 				if(toggleCount % 2) {
 					toggleCount++;
+					flashSave(ALERT_FLASH_ID, &toggleCount);
 					GPIO_PinOutSet(BUZZ_PORT, BUZZ_PIN);
 					gpioLed1SetOn();
 				}
 				else {
 					toggleCount++;
+					flashSave(ALERT_FLASH_ID, &toggleCount);
 					GPIO_PinOutClear(BUZZ_PORT, BUZZ_PIN);
 					gpioLed1SetOff();
 
 					// stop alerts after 10 seconds
 					if(toggleCount > 100) {
 						toggleCount = 0;
+						flashSave(ALERT_FLASH_ID, &toggleCount);
 						gecko_cmd_hardware_set_soft_timer(0, LPN2_ALERT, 0);
-						displayPrintf(DISPLAY_ROW_SENSOR, " ");
-						displayPrintf(DISPLAY_ROW_ACTUATOR, " ");
+						displayPrintf(DISPLAY_ROW_SENSOR, "               ");
+
+						// remove display message from persistent data
+						displayString = "               ";
+						displayBuffer = stringToUint(displayString);
+						flashSave(DISPLAY_FLASH_ID, displayBuffer);
 					}
 				}
 				break;
@@ -424,6 +492,7 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
 
 			// stop alert
 			toggleCount = 101;
+			flashSave(ALERT_FLASH_ID, &toggleCount);
 
 			// server publish alert stop data
 			current.level.level = PB0_STOP_ALERT;
@@ -450,10 +519,14 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
 		if (((evt->data.evt_system_external_signal.extsignals) & NOISE_FLAG) != 0) {
 			LOG_INFO("NOISE EXTERNAL SIGNAL");
 
-			displayPrintf(DISPLAY_ROW_SENSOR, "NOISE ALERT");
+			displayPrintf(DISPLAY_ROW_SENSOR, " NOISE ALERT ");
+			displayString = " NOISE ALERT ";
+			displayBuffer = stringToUint(displayString);
+			flashSave(DISPLAY_FLASH_ID, displayBuffer);
 
 			// start alerts
 			toggleCount = 0;
+			flashSave(ALERT_FLASH_ID, &toggleCount);
 			gecko_cmd_hardware_set_soft_timer(3277, LPN2_ALERT, 0);
 
 			// server publish noise alert
@@ -482,9 +555,13 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
 			LOG_INFO("HUMIDITY EXTERNAL SIGNAL");
 
 			displayPrintf(DISPLAY_ROW_SENSOR, "HUMIDITY ALERT");
+			displayString = "HUMIDITY ALERT";
+			displayBuffer = stringToUint(displayString);
+			flashSave(DISPLAY_FLASH_ID, displayBuffer);
 
 			// start alerts
 			toggleCount = 0;
+			flashSave(ALERT_FLASH_ID, &toggleCount);
 			gecko_cmd_hardware_set_soft_timer(3277, LPN2_ALERT, 0);
 
 			// server publish noise alert
@@ -570,7 +647,6 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
       break;
 
     case gecko_evt_mesh_node_reset_id:
-    	gecko_cmd_flash_ps_erase_all();
     	gecko_cmd_hardware_set_soft_timer(2 * 32768, TIMER_ID_FACTORY_RESET, 1);
     	break;
 
@@ -587,4 +663,89 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
     default:
       break;
   }
+}
+
+
+/***************************************************************************//**
+ * Persistent Data Flash Load function
+ ******************************************************************************/
+uint8_t* flashLoad(uint8_t flashID) {
+    uint16 resp;
+    struct gecko_msg_flash_ps_load_rsp_t* flashResp;
+    // array to store actual data, display length taken because that will be longest
+
+    switch (flashID) {
+        case ALERT_FLASH_ID:
+            flashResp = gecko_cmd_flash_ps_load(ALERT_FLASH_ADDR);
+            flashData[0] = flashResp->value.data[0];
+            break;
+
+        case DISPLAY_FLASH_ID:
+            flashResp = gecko_cmd_flash_ps_load(DISPLAY_FLASH_ADDR);
+            for(int i=0; i<DISPLAY_DATA_LEN; i++)    {
+                flashData[i] = flashResp->value.data[i];
+            }
+            break;
+
+        case LIGHTS_FLASH_ID:
+            flashResp = gecko_cmd_flash_ps_load(LIGHTS_FLASH_ADDR);
+            flashData[0] = flashResp->value.data[0];
+            break;
+    }
+
+    resp = flashResp->result;
+    if(resp) {
+        LOG_INFO("flash load failed,code %x", resp);
+    } else {
+        LOG_INFO("flash load success");
+    }
+
+    return flashData;
+}
+
+/***************************************************************************//**
+ * Persistent Data Flash Store function
+ ******************************************************************************/
+void flashSave(uint8_t flashID, uint8_t *dataPtr) {
+    uint16 resp;
+
+    switch (flashID) {
+        case ALERT_FLASH_ID:
+            resp = gecko_cmd_flash_ps_save(ALERT_FLASH_ADDR, ALERT_DATA_LEN, dataPtr)->result;
+            break;
+
+        case DISPLAY_FLASH_ID:
+            resp = gecko_cmd_flash_ps_save(DISPLAY_FLASH_ADDR, DISPLAY_DATA_LEN, dataPtr)->result;
+            break;
+
+        case LIGHTS_FLASH_ID:
+            resp = gecko_cmd_flash_ps_save(LIGHTS_FLASH_ADDR, LIGHTS_DATA_LEN, dataPtr)->result;
+            break;
+    }
+
+    if (resp) {
+        LOG_INFO("flash store failed,code %x", resp);
+    } else {
+        LOG_INFO("flash store success");
+    }
+}
+
+// string to uint8_t buffer
+uint8_t* stringToUint(char* str) {
+    LOG_INFO("strlen = %d", strlen(str));
+    for(int i=0; i<strlen(str); i++){
+        uintArray[i] = (uint8_t)str[i];
+        LOG_INFO("%c - %d", str[i], uintArray[i]);
+    }
+    return uintArray;
+}
+
+// uint8_t buffer to string
+char* uintToString(uint8_t* buffer) {
+//    LOG_INFO("SIZEOF = %d", sizeof(buffer));
+    for(int i=0; i<DISPLAY_DATA_LEN; i++){
+        charArray[i] = (char)buffer[i];
+        LOG_INFO("%c - %d", charArray[i], buffer[i]);
+    }
+    return charArray;
 }

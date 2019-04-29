@@ -98,7 +98,7 @@ void getTempVal(void)
 	//Calculate the humidity value
 	tempvalue = (125*i2c_data/65536) - 6;
 
-	if(tempvalue > 40)
+	if(tempvalue > 45)
 		gecko_external_signal(HUMIDITY_FLAG);
 
 	/* Print the value on serial terminal */
