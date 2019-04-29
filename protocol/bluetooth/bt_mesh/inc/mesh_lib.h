@@ -18,6 +18,9 @@
 #ifndef MESH_LIB_H
 #define MESH_LIB_H
 
+
+#include "mesh_generic_model_capi_types.h"
+
 /** Request flags */
 typedef enum {
   /** Send request as nonrelayed (with TTL zero); response, if any,
